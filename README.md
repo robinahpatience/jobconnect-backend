@@ -1,165 +1,97 @@
 # JobConnect Backend
 
-This repository contains the backend API for JobConnect, a learning project that shows students how to build a role-based job marketplace with Node.js, Express, JWT authentication, bcrypt password hashing, MariaDB/MySQL, and Multer file uploads.
+JobConnect is an Express/Node.js API backed by MySQL. This repository is
+the backend fork used for the JobConnect enhancement assignment.
 
-The frontend lives in a separate repository named `jobconnect-frontend`.
+## Added backend feature
 
-## What This Backend Teaches
-
-- How to structure an Express project with routes, controllers, middleware, and config files.
-- How JWT authentication works in a real API.
-- How role-based access control protects admin, employer, and job seeker routes.
-- How to use bcrypt so plain text passwords are never stored.
-- How to query MariaDB/MySQL with `mysql2/promise`.
-- How to upload CV files with Multer.
-- How to enforce ownership, for example employers can edit only their own jobs.
-
-## Folder Structure
-
-```text
-jobconnect-backend/
-  config/
-    db.js                  # MySQL connection pool
-  controllers/             # Request handlers and database logic
-  middleware/              # Auth, role checks, and upload handling
-  routes/                  # URL definitions that call controllers
-  uploads/                 # CV files are stored here
-  database/
-    schema.sql             # Tables and relationships
-    seed.sql               # Sample learning data
-  server.js                # Express app entry point
-  package.json
-  .env.example
-```
-
-## Request Flow
-
-1. A browser sends a request to an endpoint such as `POST /api/jobs`.
-2. The route in `routes/jobRoutes.js` decides which middleware and controller should run.
-3. `protect` in `middleware/authMiddleware.js` verifies the JWT and loads `req.user`.
-4. `authorize` in `middleware/roleMiddleware.js` checks the user's role.
-5. The controller validates input, runs SQL queries, and returns JSON.
+**Save Jobs API** --- authenticated job seekers can save a job, list
+their saved jobs, and remove a saved job. Saved records are associated
+with the signed-in job seeker and the selected job.
 
 ## Requirements
 
-- Node.js 18 or newer
-- MariaDB or MySQL
-- npm
+-   Node.js and npm
+-   MySQL Server
+-   A database and application user configured for JobConnect
 
 ## Setup
 
-Install dependencies:
+1.  Install dependencies:
 
-```bash
-npm install
-```
+    ``` bash
+    npm install
+    ```
 
-Create your environment file:
+2.  Create the database and tables using the project's existing database
+    schema and seed instructions. Review the SQL files before running
+    them; do not blindly rerun a schema script that drops existing
+    tables.
 
-```bash
-cp .env.example .env
-```
+3.  Create a local `.env` file in the backend directory. Use the
+    variable names expected by the application:
 
-Update `.env`:
+    ``` dotenv
+    PORT=5000
+    DB_HOST=localhost
+    DB_USER=your_database_user
+    DB_PASSWORD=your_database_password
+    DB_NAME=your_database_name
+    DB_PORT=3306
+    JWT_SECRET=replace_with_a_long_random_secret
+    JWT_EXPIRES_IN=7d
+    FRONTEND_URL=http://localhost:5173
+    ```
 
-```env
-PORT=5000
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=jobconnect
-DB_PORT=3306
-JWT_SECRET=replace_this_with_a_long_random_secret
-JWT_EXPIRES_IN=7d
-FRONTEND_URL=http://localhost:5173
-```
+    Replace the example database values with your own local
+    configuration. Never commit `.env` or share passwords and JWT
+    secrets.
 
-Create and seed the database:
+4.  Start the backend in development mode:
 
-```bash
-mysql -u root -p < database/schema.sql
-mysql -u root -p < database/seed.sql
-```
+    ``` bash
+    npm run dev
+    ```
 
-Start the backend:
+5.  Verify the health endpoint:
 
-```bash
-npm run dev
-```
+    ``` bash
+    curl -i http://localhost:5000/api/health
+    ```
 
-The API runs at:
+    A successful local setup should return HTTP 200 and report that the
+    database is connected.
 
-```text
-http://localhost:5000
-```
+## Saved Jobs API
 
-Health check:
+All endpoints require authentication as a job seeker:
 
-```text
-GET http://localhost:5000/api/health
-```
+  Method     Endpoint                   Purpose
+  ---------- -------------------------- --------------------------------------
+  `POST`     `/api/saved-jobs/:jobId`   Save a job
+  `GET`      `/api/saved-jobs`          List the current seeker's saved jobs
+  `DELETE`   `/api/saved-jobs/:jobId`   Remove a saved job
 
-## Default Seed Accounts
+The database table uses a unique constraint for
+`(job_seeker_id, job_id)` to prevent duplicate saved records and foreign
+keys to maintain referential integrity.
 
-Use these accounts after loading `database/seed.sql`:
+## Main changed files
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Admin | `admin@jobconnect.com` | `password123` |
-| Employer | `employer1@jobconnect.com` | `password123` |
-| Employer | `employer2@jobconnect.com` | `password123` |
-| Job Seeker | `seeker1@jobconnect.com` | `password123` |
-| Job Seeker | `seeker2@jobconnect.com` | `password123` |
+-   `server.js` --- registers `/api/saved-jobs`.
+-   `controllers/savedJobController.js` --- implements saving, listing,
+    and removing saved jobs.
+-   `routes/savedJobRoutes.js` --- protects the routes and restricts
+    access to job seekers.
 
-## Main Endpoints
+## Demo accounts
 
-Auth:
+For local demonstration only, the seeded demo accounts use the password
+`password123`:
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
+-   Job seeker: `seeker1@jobconnect.com`
+-   Employer: `employer1@jobconnect.com` or `employer2@jobconnect.com`
+-   Admin: `admin@jobconnect.com`
 
-Profiles:
-
-- `GET /api/profile`
-- `PUT /api/profile/employer`
-- `PUT /api/profile/job-seeker`
-
-Jobs:
-
-- `GET /api/jobs`
-- `GET /api/jobs/:id`
-- `GET /api/jobs/employer/my-jobs`
-- `POST /api/jobs`
-- `PUT /api/jobs/:id`
-- `DELETE /api/jobs/:id`
-
-Applications:
-
-- `POST /api/applications/apply/:jobId`
-- `GET /api/applications/my-applications`
-- `GET /api/applications/job/:jobId`
-- `PUT /api/applications/:id/status`
-
-Admin:
-
-- `GET /api/admin/stats`
-- `GET /api/admin/users`
-- `GET /api/admin/jobs`
-- `GET /api/admin/applications`
-- `PUT /api/admin/users/:id/status`
-
-## Student Exercises
-
-- Add validation for stronger passwords during registration.
-- Add pagination to job browsing.
-- Add an endpoint for admins to create another admin account.
-- Store uploaded CVs in cloud storage instead of local disk.
-- Add automated API tests for auth and job ownership rules.
-
-## Useful Checks
-
-```bash
-node --check server.js
-npm audit --omit=dev
-```
+## for reference
+  git clone https://github.com/robinahpatience/jobconnect-backend.git
