@@ -7,10 +7,11 @@ const pool = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+
 const jobRoutes = require('./routes/jobRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-
+const savedJobRoutes = require('./routes/savedJobRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const defaultAllowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
@@ -58,7 +59,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/admin', adminRoutes);
-
+app.use('/api/saved-jobs', savedJobRoutes);
 // Any request that reached this point did not match a defined route.
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
